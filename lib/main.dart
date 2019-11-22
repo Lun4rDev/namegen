@@ -1,5 +1,6 @@
-import 'package:flutter/material.dart';
 import 'dart:math';
+import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 void main() => runApp(MyApp());
@@ -34,8 +35,13 @@ class MyHomePage extends StatefulWidget {
 
 class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
 
+  // Global scaffold key
+  final scaffoldKey = GlobalKey<ScaffoldState>(); 
+
+  // TabView controller
   TabController tabController;
 
+  // Shared preferences instance
   SharedPreferences prefs;
 
   // Shared preferences key for the favorites list
@@ -117,6 +123,7 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      key: scaffoldKey,
       appBar: AppBar(
         elevation: 0,
         backgroundColor: Theme.of(context).scaffoldBackgroundColor,
@@ -218,11 +225,20 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
                 Dismissible(
                   key: Key(fav),
                   background: Container(
-                    alignment: Alignment.center,
-                    color: Colors.red,
-                    child: Icon(Icons.delete),),
+                        alignment: Alignment.center,
+                        color: Colors.red,
+                        child: Icon(Icons.delete),),
                   onDismissed: (direction) => toggleFavorite(fav),
                   child: ListTile(
+                    onTap: () {
+                      Clipboard.setData(ClipboardData(text: fav)).then(
+                        (_) => scaffoldKey.currentState.showSnackBar(SnackBar(
+                          elevation: 16,
+                          backgroundColor: Colors.grey[850],
+                          content: Text("Named copied to clipboard.", 
+                            style: TextStyle(color: Theme.of(context).accentColor, fontSize: 16),
+                            textAlign: TextAlign.center,))));
+                    } ,
                     contentPadding: EdgeInsets.symmetric(vertical: 8),
                     title: Text(fav, textAlign: TextAlign.center, style: TextStyle(fontSize: 20),)),
                 )
