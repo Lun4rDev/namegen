@@ -10,6 +10,7 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
+      debugShowCheckedModeBanner: false,
       title: 'Name Generator',
       theme: ThemeData(
         brightness: Brightness.dark,
@@ -194,7 +195,8 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
                   ),
                   SizedBox(height: 8,),
                   RaisedButton(
-                    child: Text("Generate names", style: TextStyle(color: Colors.black),),
+                    shape: StadiumBorder(),
+                    child: Text("Generate names", style: TextStyle(color: Colors.black, fontSize: 16,)),
                     onPressed: () => generate(),
                   ),
                   SizedBox(height: 16,),
@@ -208,7 +210,7 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
                           onTap: () => toggleFavorite(name),
                           child: Chip(
                             label: Text(name, style: TextStyle(
-                              fontSize: 16,
+                              fontSize: 18,
                               color: favorites.contains(name) ? Colors.black : Colors.white),),
                             backgroundColor: favorites.contains(name) ? Theme.of(context).accentColor : Theme.of(context).secondaryHeaderColor,
                           )
