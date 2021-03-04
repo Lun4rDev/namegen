@@ -5,13 +5,15 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 void main() => runApp(MyApp());
 
+const appName = 'Name Generator';
+
 class MyApp extends StatelessWidget {
   // This widget is the root of your application.
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
-      title: 'Name Generator',
+      title: appName,
       theme: ThemeData(
         brightness: Brightness.dark,
         primaryColor: Color(0xFF333533),
@@ -20,15 +22,13 @@ class MyApp extends StatelessWidget {
         buttonColor: Color(0xFFF5CB5C),
         cardColor: Color(0xFF323232),
       ),
-      home: MyHomePage(title: 'Name Generator'),
+      home: MyHomePage(),
     );
   }
 }
 
 class MyHomePage extends StatefulWidget {
-  MyHomePage({Key key, this.title}) : super(key: key);
-
-  final String title;
+  MyHomePage({Key? key}) : super(key: key);
 
   @override
   _MyHomePageState createState() => _MyHomePageState();
@@ -36,14 +36,11 @@ class MyHomePage extends StatefulWidget {
 
 class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
 
-  // Global scaffold key
-  final scaffoldKey = GlobalKey<ScaffoldState>(); 
-
   // TabView controller
-  TabController tabController;
+  late TabController tabController = TabController(vsync: this, length: 2);
 
   // Shared preferences instance
-  SharedPreferences prefs;
+  late SharedPreferences prefs;
 
   // Shared preferences key for the favorites list
   String favKey = "FAV";
@@ -98,16 +95,13 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
   @override
   void initState() {
     super.initState();
-    tabController = TabController(vsync: this, length: 2);
-    initSharedPrefs();
-  }
-
-  initSharedPrefs() async {
-    var p = await SharedPreferences.getInstance();
-    setState(() {
-      prefs = p;
-      favorites = prefs.getStringList(favKey) ?? [];
-    });
+    () async {
+      var p = await SharedPreferences.getInstance();
+      setState(() {
+        prefs = p;
+        favorites = prefs.getStringList(favKey) ?? [];
+      });
+    }();
   }
 
   toggleFavorite(String name){
@@ -124,129 +118,159 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      key: scaffoldKey,
       appBar: AppBar(
         elevation: 0,
         backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-        title: Center(child: Text(widget.title, style: TextStyle(fontSize: 24,))),
+        title: Center(child: Text(appName, style: TextStyle(fontSize: 24,))),
       ),
-      body: TabBarView(
-        controller: tabController,
-        children: <Widget>[
-          Container(
-            alignment: Alignment.center,
-            margin: EdgeInsets.symmetric(horizontal: 8),
-            child: SingleChildScrollView(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: <Widget>[
-                  ExpansionPanelList(
-                    animationDuration: Duration(milliseconds: 300),
-                    expansionCallback: (i, open) => setState(() => isPanelOpened = !open),
-                    children: <ExpansionPanel>[
-                      ExpansionPanel(
-                        canTapOnHeader: true,
-                        isExpanded: isPanelOpened,
-                        headerBuilder: (context, open){
-                          return Container(
-                            padding: EdgeInsets.only(left: 16),
-                            alignment: Alignment.centerLeft,
-                            child: Text("Letters", style: TextStyle(fontSize: 20),));
-                        },
-                        body: Wrap(
-                          spacing: 4,
+      body: Center(
+        child: Container(
+          constraints: BoxConstraints(maxWidth: 800),
+          child: TabBarView(
+            controller: tabController,
+            children: <Widget>[
+              // Generator tab
+              Container(
+                alignment: Alignment.center,
+                margin: EdgeInsets.symmetric(horizontal: 8),
+                child: SingleChildScrollView(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: <Widget>[
+                      ExpansionPanelList(
+                        animationDuration: Duration(milliseconds: 300),
+                        expansionCallback: (i, open) => setState(() => isPanelOpened = !open),
+                        children: <ExpansionPanel>[
+                          ExpansionPanel(
+                            canTapOnHeader: true,
+                            isExpanded: isPanelOpened,
+                            headerBuilder: (context, open){
+                              return Container(
+                                padding: EdgeInsets.only(left: 16),
+                                alignment: Alignment.centerLeft,
+                                child: Text("Letters", style: TextStyle(fontSize: 20),));
+                            },
+                            body: Padding(
+                              padding: const EdgeInsets.all(8.0),
+                              child: Wrap(
+                                spacing: 8,
+                                runSpacing: 8,
+                                alignment: WrapAlignment.center,
+                                children: <Widget>[
+                                for(var i = 0; i < letters.length; i++)
+                                  GestureDetector(
+                                    onTap: () => setState(() => selection[i] = !selection[i]),
+                                    child: Chip(
+                                      label: Text(letters[i], style: TextStyle(
+                                      fontSize: 20,
+                                      color: selection[i] ? Colors.black : Colors.white),),
+                                    backgroundColor: selection[i] ? Theme.of(context).accentColor : Theme.of(context).secondaryHeaderColor,),
+                                  )
+                              ],),
+                            )
+                          )
+                        ],
+                      ),
+                      SizedBox(height: 32,),
+                      Text("Letters in the words", style: TextStyle(fontSize: 20),),
+                      RangeSlider(
+                        activeColor: Theme.of(context).accentColor,
+                        inactiveColor: Theme.of(context).secondaryHeaderColor,
+                        divisions: 14,
+                        min: 2,
+                        max: 16,
+                        onChanged: (RangeValues rv) => setState(() => lettersRange = rv),
+                        labels: RangeLabels(lettersRange.start.toInt().toString(), lettersRange.end.toInt().toString()),
+                        values: lettersRange,
+                      ),
+                      SizedBox(height: 16,),
+                      Text("Words to generate", style: TextStyle(fontSize: 20),),
+                      Slider(
+                        activeColor: Theme.of(context).accentColor,
+                        inactiveColor: Theme.of(context).secondaryHeaderColor,
+                        divisions: 19,
+                        min: 1,
+                        max: 20,
+                        onChanged: (double nb) => setState(() => wordsCount = nb),
+                        label: wordsCount.toInt().toString(),
+                        value: wordsCount
+                      ),
+                      SizedBox(height: 16,),
+                      ElevatedButton.icon(
+
+                        style: ElevatedButton.styleFrom(
+                          primary: Theme.of(context).accentColor,
+                          shape: StadiumBorder()
+                        ),
+                        icon: Icon(Icons.refresh, color: Colors.black,),
+                        label: Padding(
+                          padding: const EdgeInsets.all(8.0),
+                          child: Text("Generate names", 
+                            style: TextStyle(color: Colors.black, fontSize: 18,)),
+                        ),
+                        onPressed: () => generate(),
+                      ),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 16.0),
+                        child: Divider(color: Theme.of(context).accentColor),
+                      ),
+                      if(names.isNotEmpty)
+                        Wrap(
+                          alignment: WrapAlignment.center,
+                          spacing: 8,
+                          runSpacing: 8,
                           children: <Widget>[
-                          for(var i = 0; i < letters.length; i++)
+                          for(var name in names)
                             GestureDetector(
-                              onTap: () => setState(() => selection[i] = !selection[i]),
+                              onTap: () => toggleFavorite(name),
                               child: Chip(
-                                label: Text(letters[i], style: TextStyle(
-                                fontSize: 20,
-                                color: selection[i] ? Colors.black : Colors.white),),
-                              backgroundColor: selection[i] ? Theme.of(context).accentColor : Theme.of(context).secondaryHeaderColor,),
+                                label: Text(name, style: TextStyle(
+                                  fontSize: 18,
+                                  color: favorites.contains(name) ? Colors.black : Colors.white),),
+                                backgroundColor: favorites.contains(name) ? Theme.of(context).accentColor : Theme.of(context).secondaryHeaderColor,
+                              )
                             )
                         ],)
-                      )
                     ],
                   ),
-                  SizedBox(height: 24,),
-                  Text("Letters in the words", style: TextStyle(fontSize: 20),),
-                  RangeSlider(
-                    activeColor: Theme.of(context).accentColor,
-                    inactiveColor: Theme.of(context).secondaryHeaderColor,
-                    divisions: 14,
-                    min: 2,
-                    max: 16,
-                    onChanged: (RangeValues rv) => setState(() => lettersRange = rv),
-                    labels: RangeLabels(lettersRange.start.toInt().toString(), lettersRange.end.toInt().toString()),
-                    values: lettersRange,
-                  ),
-                  SizedBox(height: 8,),
-                  Text("Words to generate", style: TextStyle(fontSize: 20),),
-                  Slider(
-                    activeColor: Theme.of(context).accentColor,
-                    inactiveColor: Theme.of(context).secondaryHeaderColor,
-                    divisions: 19,
-                    min: 1,
-                    max: 20,
-                    onChanged: (double nb) => setState(() => wordsCount = nb),
-                    label: wordsCount.toInt().toString(),
-                    value: wordsCount
-                  ),
-                  SizedBox(height: 8,),
-                  RaisedButton(
-                    shape: StadiumBorder(),
-                    child: Text("Generate names", style: TextStyle(color: Colors.black, fontSize: 16,)),
-                    onPressed: () => generate(),
-                  ),
-                  SizedBox(height: 16,),
-                  if(names.isNotEmpty)
-                    Wrap(
-                      alignment: WrapAlignment.center,
-                      spacing: 4,
-                      children: <Widget>[
-                      for(var name in names)
-                        GestureDetector(
-                          onTap: () => toggleFavorite(name),
-                          child: Chip(
-                            label: Text(name, style: TextStyle(
-                              fontSize: 18,
-                              color: favorites.contains(name) ? Colors.black : Colors.white),),
-                            backgroundColor: favorites.contains(name) ? Theme.of(context).accentColor : Theme.of(context).secondaryHeaderColor,
-                          )
-                        )
-                    ],)
-                ],
+                ),
               ),
-            ),
-          ),
-          ListView(
-            children: <Widget>[
-              if(favorites.isNotEmpty)
-                for(var fav in favorites)
-                Dismissible(
-                  key: Key(fav),
-                  background: Container(
-                        alignment: Alignment.center,
-                        color: Colors.red,
-                        child: Icon(Icons.delete),),
-                  onDismissed: (direction) => toggleFavorite(fav),
-                  child: ListTile(
-                    onTap: () {
-                      Clipboard.setData(ClipboardData(text: fav)).then(
-                        (_) => scaffoldKey.currentState.showSnackBar(SnackBar(
-                          elevation: 16,
-                          backgroundColor: Colors.grey[850],
-                          content: Text("Named copied to clipboard.", 
-                            style: TextStyle(color: Theme.of(context).accentColor, fontSize: 16),
-                            textAlign: TextAlign.center,))));
-                    } ,
-                    contentPadding: EdgeInsets.symmetric(vertical: 8),
-                    title: Text(fav, textAlign: TextAlign.center, style: TextStyle(fontSize: 20),)),
-                )
+
+              // Favorites tab
+              ListView(
+                children: <Widget>[
+                  if(favorites.isNotEmpty)
+                    for(var fav in favorites)
+                    Dismissible(
+                      key: Key(fav),
+                      background: Container(
+                            alignment: Alignment.center,
+                            color: Colors.red,
+                            child: Icon(Icons.delete),),
+                      onDismissed: (direction) => toggleFavorite(fav),
+                      child: ListTile(
+                        onTap: () async {
+                          // Copy the text in the clipboard
+                          await Clipboard.setData(ClipboardData(text: fav));
+
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              elevation: 16,
+                              backgroundColor: Colors.grey[850],
+                              content: Text("Named copied to clipboard.", 
+                                style: TextStyle(color: Theme.of(context).accentColor, fontSize: 16),
+                                textAlign: TextAlign.center,)
+                            )
+                          );
+                        } ,
+                        contentPadding: EdgeInsets.symmetric(vertical: 8),
+                        title: Text(fav, textAlign: TextAlign.center, style: TextStyle(fontSize: 20),)),
+                    )
+                ],
+              )
             ],
-          )
-        ],
+          ),
+        ),
       ),
       bottomNavigationBar: TabBar(
         indicatorWeight: 1,
